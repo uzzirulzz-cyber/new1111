@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+@layer base {
+  :root {
+    --background: 220 60% 4%;
+    --foreground: 0 0% 98%;
+    --card: 220 50% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 220 50% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 220 100% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 20% 14%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 45 100% 48%;
+    --accent-foreground: 220 60% 4%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 20% 14%;
+    --input: 220 20% 14%;
+    --ring: 220 100% 52%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-navy-950 text-foreground font-sans antialiased;
+    background-color: #071326;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-royal-400 via-gold-400 to-royal-400;
+  }
+
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+
+  .glass-strong {
+    @apply bg-white/10 backdrop-blur-2xl border border-white/20;
+  }
+
+  .glow-royal {
+    box-shadow: 0 0 40px rgba(10, 77, 255, 0.3), 0 0 80px rgba(10, 77, 255, 0.1);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 40px rgba(245, 183, 0, 0.3), 0 0 80px rgba(245, 183, 0, 0.1);
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-royal-500 to-royal-600 text-white font-semibold px-6 py-3 rounded-lg 
+           hover:from-royal-600 hover:to-royal-700 transition-all duration-300 shadow-lg shadow-royal-500/25
+           hover:shadow-royal-500/40 active:scale-95;
+  }
+
+  .btn-gold {
+    @apply bg-gradient-to-r from-gold-500 to-gold-600 text-navy-950 font-bold px-6 py-3 rounded-lg 
+           hover:from-gold-400 hover:to-gold-500 transition-all duration-300 shadow-lg shadow-gold-500/25
+           hover:shadow-gold-500/40 active:scale-95;
+  }
+
+  .card-glass {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl 
+           hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-500;
+  }
+
+  .section-padding {
+    @apply px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #071326;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a478e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0A4DFF;
+}
+
+/* Selection */
+::selection {
+  background: rgba(10, 77, 255, 0.3);
+  color: white;
+}
