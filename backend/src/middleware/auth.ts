@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import User from "../models/User";
+import { prisma } from "../config/prisma";
 import { AppError } from "./errorHandler";
 
 interface AuthRequest extends Request {
@@ -16,13 +16,29 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "playbeat-secret") as any;
-    const user = await User.findById(decoded.id).select("-password");
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        role: true,
+        status: true,
+        walletBalance: true,
+        walletCurrency: true,
+        twoFactorEnabled: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    });
 
     if (!user) {
       throw new AppError("User not found.", 401);
     }
 
-    if (user.status === "banned") {
+    if (user.status === "BANNED") {
       throw new AppError("Account has been suspended.", 403);
     }
 

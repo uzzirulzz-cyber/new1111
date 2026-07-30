@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
-import { connectDB } from "./config/database";
+import { connectDB, disconnectDB } from "./config/database";
 import { errorHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/logger";
 
@@ -32,6 +32,7 @@ import blogRoutes from "./routes/blog";
 import referralRoutes from "./routes/referral";
 import iptvRoutes from "./routes/iptv";
 import licenseRoutes from "./routes/licenses";
+import couponRoutes from "./routes/coupons";
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://api.paypal.com"],
     },
   },
 }));
@@ -59,17 +61,26 @@ app.use(helmet({
 app.use(cors({
   origin: process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many requests, please try again later." },
 });
 app.use(limiter);
+
+// Stricter rate limit for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: "Too many auth attempts. Please try again later." },
+});
 
 // Body parsing
 app.use(express.json({ limit: "10mb" }));
@@ -80,11 +91,17 @@ app.use(requestLogger);
 
 // Health check
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString(), version: "1.0.0" });
+  res.json({ 
+    status: "ok", 
+    timestamp: new Date().toISOString(), 
+    version: "1.0.0",
+    database: "postgresql",
+    environment: process.env.NODE_ENV || "development",
+  });
 });
 
 // API Routes
-app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/auth", authLimiter, authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/categories", categoryRoutes);
@@ -103,17 +120,24 @@ app.use("/api/v1/blog", blogRoutes);
 app.use("/api/v1/referral", referralRoutes);
 app.use("/api/v1/iptv", iptvRoutes);
 app.use("/api/v1/licenses", licenseRoutes);
+app.use("/api/v1/coupons", couponRoutes);
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  console.log(`🔌 Client connected: ${socket.id}`);
 
   socket.on("join-room", (userId: string) => {
     socket.join(`user-${userId}`);
+    console.log(`User ${userId} joined their room`);
+  });
+
+  socket.on("join-admin", () => {
+    socket.join("admin-room");
+    console.log(`Admin joined admin room`);
   });
 
   socket.on("disconnect", () => {
-    console.log(`Client disconnected: ${socket.id}`);
+    console.log(`🔌 Client disconnected: ${socket.id}`);
   });
 });
 
@@ -128,14 +152,35 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received. Shutting down gracefully...");
+  await disconnectDB();
+  httpServer.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", async () => {
+  console.log("SIGINT received. Shutting down gracefully...");
+  await disconnectDB();
+  httpServer.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
+});
+
 // Database connection and server start
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
   httpServer.listen(PORT, () => {
-    console.log(`🚀 PlayBeat Digital API Server running on port ${PORT}`);
+    console.log(`\n🚀 PlayBeat Digital API Server running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`🗄️  Database: PostgreSQL (Neon)`);
     console.log(`🔌 Socket.IO enabled for real-time updates`);
+    console.log(`\nAPI Documentation: http://localhost:${PORT}/api/v1/docs (coming soon)`);
   });
 });
 
